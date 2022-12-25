@@ -1,58 +1,81 @@
 import { declare } from '@babel/helper-plugin-utils';
 import fs from 'fs';
 import path from 'path';
+import type { Locale } from '../context';
 
-let FuncName = 't';
+declare module '@babel/core' {
+  interface PluginPass {
+    messages: Set<string>;
+  }
+}
 
-function ensureDirSync(dir) {
+const TRANS_FUNC_NAME = 't';
+
+type Options = {
+  langs?: string[];
+  output?: string;
+  extractFunctionName?: string;
+};
+
+const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
+  const {
+    langs = [],
+    output = './locales',
+    extractFunctionName = TRANS_FUNC_NAME,
+  } = options;
+
+  const dir = path.resolve(dirname, output);
+
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir);
   }
-}
-let BabelPluginI18n = declare(function (_ref, options, dirname) {
-  let t = _ref.types;
-  let _options$output = options.output,
-    output = _options$output === void 0 ? './locales' : _options$output;
-  let dir = path.resolve(dirname, output);
-  ensureDirSync(dir);
-  console.log('enter plugin');
+
   return {
-    pre: function pre(file) {
-      let sourceFileName = file.opts.sourceFileName;
-      console.log('filename', sourceFileName);
-      if (
-        sourceFileName !== null &&
-        sourceFileName !== void 0 &&
-        sourceFileName.includes('node_modules')
-      ) {
-        this.set('skip', true);
+    pre() {
+      this.messages = new Set();
+
+      if (this.filename?.includes('node_modules')) {
+        this.file.path.skip();
       }
     },
     visitor: {
-      Program: function Program(path, state) {
-        console.log('enter program');
-        if (state.get('skip')) {
-          console.log('skip program');
-          path.skip();
+      CallExpression(path, state) {
+        const [firstArg] = path.node.arguments;
+        const isTargetFunc = path
+          .get('callee')
+          .isIdentifier({ name: extractFunctionName });
+
+        if (isTargetFunc && t.isStringLiteral(firstArg) && firstArg.value) {
+          state.messages.add(firstArg.value);
         }
       },
-      CallExpression: function CallExpression(path) {
-        // if (shouldSkip) {
-        //   return;
-        // }
+    },
+    post() {
+      if (this.messages.size === 0) {
+        return;
+      }
 
-        console.log('enter call');
-        let firstArg = path.node.arguments.at(0);
-        if (
-          path.get('callee').isIdentifier({
-            name: FuncName,
-          }) &&
-          firstArg
-        ) {
-          if (t.isStringLiteral(firstArg) && firstArg.value) {
+      for (const lang of langs) {
+        const filename = path.join(dir, lang + '.json');
+
+        let sourceLocale: Locale = {};
+
+        if (fs.existsSync(filename)) {
+          try {
+            sourceLocale = JSON.parse(fs.readFileSync(filename, 'utf-8'));
+          } catch (err) {
+            throw new Error(`${lang}.json is invalid json format`);
           }
         }
-      },
+
+        this.messages.forEach((key) => {
+          if (!sourceLocale[key]) {
+            sourceLocale[key] = key;
+          }
+        });
+
+        fs.writeFileSync(filename, JSON.stringify(sourceLocale, null, 2));
+      }
     },
   };
 });
