@@ -1,9 +1,9 @@
 # i18n
 
-[![NPM version](https://img.shields.io/npm/v/i18n.svg?style=flat)](https://npmjs.org/package/i18n)
-[![NPM downloads](http://img.shields.io/npm/dm/i18n.svg?style=flat)](https://npmjs.org/package/i18n)
+[![NPM version](https://img.shields.io/npm/v/helven/i18n.svg?style=flat)](https://npmjs.com/package/@helven/i18n)
+[![NPM downloads](http://img.shields.io/npm/dm/i18n.svg?style=flat)](https://npmjs.org/package/@helven/i18n)
 
-A react library developed with dumi
+A tiny internationalization library
 
 ## Usage
 
