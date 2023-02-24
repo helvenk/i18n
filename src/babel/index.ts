@@ -15,12 +15,14 @@ type Options = {
   langs?: string[];
   output?: string;
   extractFunctionName?: string;
+  extractMemberCall?: boolean;
 };
 
 const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
   const {
     langs = [],
     output = './locales',
+    extractMemberCall = false,
     extractFunctionName = TRANS_FUNC_NAME,
   } = options;
 
@@ -41,11 +43,17 @@ const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
     visitor: {
       CallExpression(path, state) {
         const [firstArg] = path.node.arguments;
-        const isTargetFunc = path
-          .get('callee')
-          .isIdentifier({ name: extractFunctionName });
+        const callee = path.get('callee');
 
-        if (isTargetFunc && t.isStringLiteral(firstArg) && firstArg.value) {
+        const isTranslateCall =
+          // t('some words')
+          callee.isIdentifier({ name: extractFunctionName }) ||
+          // i18n.t('some words')
+          (extractMemberCall &&
+            callee.isMemberExpression() &&
+            callee.get('property').isIdentifier({ name: extractFunctionName }));
+
+        if (isTranslateCall && t.isStringLiteral(firstArg) && firstArg.value) {
           state.messages.add(firstArg.value);
         }
       },
