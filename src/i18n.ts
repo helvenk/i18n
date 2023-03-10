@@ -1,11 +1,9 @@
 import { I18nContextType, Locales, SetLang } from './context';
 import { defaultInterpolate, Interpolate } from './interpolate';
-import { omitKeys } from './utils';
 
 export interface I18nInstance<T extends Locales> extends I18nContextType<T> {
-  subscribe: (listener: SetLang<T>) => void;
+  subscribe: (listener: SetLang<T>) => () => void;
   context: () => I18nContextType<T>;
-  clone: () => I18nInstance<T>;
 }
 
 export interface I18nParams<T extends Locales> {
@@ -48,11 +46,9 @@ export function createI18n<T extends Locales>({
         hooks.delete(listener);
       };
     },
-    clone: () => {
-      return { ...i18n };
-    },
     context: () => {
-      return omitKeys(i18n, ['subscribe', 'clone', 'context']);
+      const { lang, locales, setLang, t } = i18n;
+      return { lang, locales, setLang, t };
     },
   };
 

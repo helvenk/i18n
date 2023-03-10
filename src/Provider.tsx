@@ -1,5 +1,5 @@
 import React, { ReactNode, useEffect, useMemo } from 'react';
-import { I18nContext, I18nContextType, Locales } from './context';
+import { I18nContext, Locales } from './context';
 import { createI18n, I18nInstance, I18nParams } from './i18n';
 import { useForceUpdate } from './utils';
 
@@ -12,21 +12,21 @@ export function I18nProvider<T extends Locales = Locales>({
   lang,
   locales,
   interpolate,
-  i18n: i18nInstance,
+  i18n,
   children,
 }: I18nProviderProps<T>) {
   const forceUpdate = useForceUpdate();
 
-  const i18n = useMemo(() => {
-    return i18nInstance ?? createI18n({ lang, locales, interpolate });
-  }, []);
-
-  useEffect(() => {
-    return i18n.subscribe(forceUpdate);
+  const instance = useMemo(() => {
+    return i18n ?? createI18n({ lang, locales, interpolate });
   }, [i18n]);
 
+  useEffect(() => {
+    return instance.subscribe(forceUpdate);
+  }, [instance]);
+
   return (
-    <I18nContext.Provider value={i18n.context() as I18nContextType}>
+    <I18nContext.Provider value={instance.context() as any}>
       {children}
     </I18nContext.Provider>
   );

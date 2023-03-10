@@ -1,10 +1,11 @@
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import { createContext } from 'react';
 
-type Literal<T> = keyof T | Omit<string, keyof T>;
+export type Literal<T> = keyof T | Omit<string, keyof T>;
 
-export type Locale = Record<string, string>;
+export interface Locale extends Record<string, string> {}
 
-export type Locales = Record<string, Locale>;
+export interface Locales extends Record<string, Locale> {}
 
 export type Payload = Record<string, any>;
 

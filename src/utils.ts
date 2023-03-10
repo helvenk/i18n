@@ -28,28 +28,6 @@ export function isEmpty(value: any): value is null | undefined {
   );
 }
 
-export function omitKeys<T extends Record<any, any>, K extends keyof T>(
-  source: T,
-  keys: K[],
-) {
-  return Object.keys(source).reduce((value, key) => {
-    if (!keys.includes(key as K)) {
-      value[key as keyof Omit<T, K>] = source[key];
-    }
-    return value;
-  }, {} as Omit<T, K>);
-}
-
-export function replaceText(
-  template: string,
-  replacers: [origin: string, value: any][],
-) {
-  return replacers.reduce(
-    (text, [origin, value]) => text.replace(origin, value),
-    template,
-  );
-}
-
 export function useForceUpdate() {
   const [, setState] = useState({});
   return () => setState({});

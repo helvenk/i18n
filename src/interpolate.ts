@@ -1,9 +1,9 @@
-import { Locale, Translate } from './context';
-import { isEmpty, memoize, replaceText } from './utils';
+import { Payload } from './context';
+import { isEmpty, memoize } from './utils';
 
 export const INCLUDES_VARIABLE_REGEXP = /%(\S+?)%/g;
 
-export type Interpolate = Translate<Locale>;
+export type Interpolate = (message: string, payload?: Payload) => string;
 
 export function createInterpolator(varReg = INCLUDES_VARIABLE_REGEXP) {
   const parseMatches = memoize((message: string) => {
@@ -13,14 +13,14 @@ export function createInterpolator(varReg = INCLUDES_VARIABLE_REGEXP) {
 
   const interpolate: Interpolate = (message, payload) => {
     if (isEmpty(payload)) {
-      return message as string;
+      return message;
     }
 
-    const matches = parseMatches(message as string);
-    const replacers = matches.map(
-      ([origin, varName]) => [origin, payload[varName]] as [string, any],
+    const matches = parseMatches(message);
+    return matches.reduce(
+      (text, [origin, varName]) => text.replace(origin, payload[varName]),
+      message,
     );
-    return replaceText(message as string, replacers);
   };
 
   return interpolate;
