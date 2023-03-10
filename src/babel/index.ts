@@ -1,4 +1,9 @@
 import { declare } from '@babel/helper-plugin-utils';
+import type {
+  ImportSpecifier,
+  JSXAttribute,
+  ObjectProperty,
+} from '@babel/types';
 import fs from 'fs-extra';
 import path from 'path';
 import type { Locale } from '../context';
@@ -27,26 +32,31 @@ export type Options = {
     /** extracted translate component name, default to `Trans` */
     component?: string;
   };
+  /** debug mode */
+  debug?: boolean;
 };
 
 declare module '@babel/core' {
   interface PluginPass {
     messages: Set<string | undefined>;
     targets: Required<NonNullable<Options['extract']>>;
+    targetFunction: string;
   }
 }
 
 declare module '@babel/types' {
   interface BlockStatement {
-    targets: Required<NonNullable<Options['extract']>>;
+    targetFunction: string;
   }
 }
 
+// TODO: extract with scope
 const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
   const {
     strict = true,
     langs = [],
     output = './locales',
+    debug = false,
     // TODO: auto translate messages
     // translator,
   } = options;
@@ -65,18 +75,18 @@ const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
   // import {} from 'i18n'
   const isModule = (node: any, name: string) => {
     return (
-      t.isImportDeclaration(node, { importKind: 'value' }) &&
+      t.isImportDeclaration(node) &&
       t.isStringLiteral(node.source, { value: name })
     );
   };
 
   // import { useTranslation, Trans } from 'i18n'
   const getImportName = (nodes: any[], name: string) => {
-    const target = nodes.find(
+    const target: ImportSpecifier = nodes.find(
       (node) =>
         t.isImportSpecifier(node) && t.isIdentifier(node.imported, { name }),
     );
-    return t.isImportSpecifier(target) ? target.local.name : name;
+    return target?.local.name ?? name;
   };
 
   // t()
@@ -102,19 +112,11 @@ const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
     );
   };
 
-  const getDeclaratorId = (nodes: any[], name: string) => {
-    const declarations = nodes
-      .filter((node) => t.isVariableDeclaration(node))
-      .map((node) => node.declarations)
-      .flat();
-    return declarations.find((o) => isCall(o.init, name))?.id;
-  };
-
-  const getPropName = (nodes: any[], name: string) => {
-    const target = nodes.find(
+  const getPropertyName = (nodes: any[], name: string) => {
+    const target: ObjectProperty = nodes.find(
       (node) => t.isObjectProperty(node) && t.isIdentifier(node.key, { name }),
     );
-    return t.isIdentifier(target?.value) ? target.value.name : name;
+    return t.isIdentifier(target?.value) ? target.value.name : undefined;
   };
 
   const getStringValue = (node: any) => {
@@ -125,7 +127,7 @@ const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
   };
 
   const getJSXAttrValue = (nodes: any[], name: string) => {
-    const target = nodes.find(
+    const target: JSXAttribute = nodes.find(
       (node) =>
         t.isJSXAttribute(node) && t.isJSXIdentifier(node.name, { name }),
     );
@@ -136,6 +138,7 @@ const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
     pre() {
       this.messages = new Set();
       this.targets = { ...extract };
+      this.targetFunction = this.targets.function;
 
       if (this.filename?.includes(EXCLUDE_PATH)) {
         this.file.path.stop();
@@ -146,7 +149,7 @@ const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
       Program(path, { targets }) {
         if (
           strict &&
-          !path.get('body').some((node) => isModule(node, targets.package))
+          !path.get('body').some(({ node }) => isModule(node, targets.package))
         ) {
           path.stop();
         }
@@ -166,40 +169,52 @@ const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
         }
       },
       /**
-       * process block scope alias
+       * process block scope, restore `targetFunction`
        *
        * @example
-       * const { t: t1 } = useTranslate();
        * {
-       *   const { t: t2 } = useTranslate();
+       *   const { t: t1 } = useTranslate();
        * }
        */
       BlockStatement: {
-        enter({ node }, { targets }) {
-          node.targets = { ...targets };
-
-          const identifier = getDeclaratorId(node.body, targets.hook);
-          if (t.isObjectPattern(identifier)) {
-            targets.function = getPropName(
-              identifier.properties,
-              targets.function,
-            );
+        enter(path, state) {
+          path.node.targetFunction = state.targetFunction;
+        },
+        exit(path, state) {
+          state.targetFunction = path.node.targetFunction;
+        },
+      },
+      /**
+       * process object pattern
+       *
+       * @example
+       * const { t } = useTranslate()
+       * const { t: translate } = useTranslate()
+       */
+      VariableDeclarator({ node }, state) {
+        if (
+          isCall(node.init, state.targets.hook) &&
+          t.isObjectPattern(node.id)
+        ) {
+          const properName = getPropertyName(
+            node.id.properties,
+            state.targets.function,
+          );
+          if (properName) {
+            state.targetFunction = properName;
           }
-        },
-        exit({ node }, state) {
-          state.targets = node.targets;
-        },
+        }
       },
       /**
        * process function call
        *
        * @example
-       * t('hell')
-       * i18n.t('hell')
+       * t('hello') // or aliasT('hello')
+       * i18n.t('hello')
        */
-      CallExpression({ node }, { targets, messages }) {
+      CallExpression({ node }, { targets, targetFunction, messages }) {
         if (
-          isCall(node, targets.function) ||
+          isCall(node, targetFunction) ||
           isMemberCall(node, targets.instance, targets.function)
         ) {
           const value = getStringValue(node.arguments[0]);
@@ -234,17 +249,22 @@ const BabelPluginI18n = declare(({ types: t }, options: Options, dirname) => {
         const file = path.resolve(distination, lang + '.json');
         const locales: Locale = fs.readJSONSync(file, { throws: false }) ?? {};
 
-        let shouldWrite = false;
+        let hasChanges = false;
 
         this.messages.forEach((key) => {
           if (key && !locales[key]) {
             locales[key] = key;
-            shouldWrite = true;
+            hasChanges = true;
           }
         });
 
-        if (shouldWrite) {
-          fs.outputJsonSync(file, locales, { spaces: 2 });
+        if (hasChanges) {
+          if (!debug) {
+            fs.outputJsonSync(file, locales, { spaces: 2 });
+          } else {
+            console.log('Extracted: %s.json', lang);
+            console.log(JSON.stringify(locales, null, 2));
+          }
         }
       }
     },
