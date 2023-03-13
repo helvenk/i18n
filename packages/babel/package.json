@@ -1,0 +1,27 @@
+{
+  "name": "@helven/i18n-babel",
+  "version": "1.0.3",
+  "description": "babel plugin for i18n",
+  "homepage": "https://github.com/helvenk/i18n",
+  "license": "MIT",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "dependencies": {
+    "@babel/helper-plugin-utils": "^7.20.2",
+    "@types/babel__helper-plugin-utils": "^7.10.0",
+    "@types/fs-extra": "^11.0.1",
+    "fs-extra": "^11.1.0"
+  },
+  "devDependencies": {
+    "@helven/i18n": "*"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "authors": [
+    "helven <helvenk@foxmail.com>"
+  ]
+}

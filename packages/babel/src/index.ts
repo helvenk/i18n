@@ -4,9 +4,9 @@ import type {
   JSXAttribute,
   ObjectProperty,
 } from '@babel/types';
+import type { Locale } from '@helven/i18n';
 import fs from 'fs-extra';
 import path from 'path';
-import type { Locale } from '../context';
 
 const EXCLUDE_PATH = 'node_modules';
 
