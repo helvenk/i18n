@@ -1,6 +1,6 @@
 {
   "name": "@helven/i18n-eslint",
-  "version": "1.0.3",
+  "version": "1.0.5",
   "description": "eslint plugin for i18n",
   "homepage": "https://github.com/helvenk/i18n",
   "license": "MIT",
