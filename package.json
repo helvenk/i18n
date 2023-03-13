@@ -10,19 +10,16 @@
   ],
   "scripts": {
     "build": "yarn workspaces run father build",
-    "build:watch": "father dev",
     "changeset": "changeset",
     "dev": "yarn workspace @helven/i18n run dumi dev",
     "docs:build": "dumi build",
-    "doctor": "father doctor",
+    "doctor": "yarn workspaces run father doctor",
     "lint": "npm run lint:es && npm run lint:css",
     "lint:css": "stylelint \"{src,test}/**/*.{css,less}\"",
     "lint:es": "eslint \"{src,test}/**/*.{js,jsx,ts,tsx}\"",
     "prepare": "husky install && dumi setup",
-    "prepublishOnly": "npm run build && father doctor",
-    "publish": "changeset publish",
-    "start": "npm run dev",
-    "version": "changeset version"
+    "prerelease": "npm run build && npm run doctor",
+    "release": "changeset version && changeset publish"
   },
   "commitlint": {
     "extends": [
