@@ -1,5 +1,11 @@
 # @helven/i18n-babel
 
+## 1.2.0
+
+### Minor Changes
+
+- support multiple formats
+
 ## 1.1.0
 
 ### Minor Changes

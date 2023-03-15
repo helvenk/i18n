@@ -1,5 +1,16 @@
 # @helven/i18n-webpack
 
+## 1.2.0
+
+### Minor Changes
+
+- support multiple formats
+
+### Patch Changes
+
+- Updated dependencies
+  - @helven/babel-plugin-i18n@1.2.0
+
 ## 1.1.0
 
 ### Minor Changes

@@ -1,10 +1,8 @@
 import { declare } from '@babel/helper-plugin-utils';
 import path from 'path';
-import { Adapter, createHelpers, getAdapter, Locale } from './utils';
+import { Adapter, createHelpers, Format, getAdapter } from './utils';
 
-export type { Locale };
-
-export const defaultAdapter = getAdapter();
+export * from './utils';
 
 const EXCLUDE_PATH = 'node_modules';
 
@@ -15,6 +13,8 @@ export type Options = {
   langs?: string[];
   /** locales output path, default to `./locales` */
   output?: string;
+  /** locale output format */
+  format?: Format;
   /** auto translate messages */
   translator?: 'google';
   /** extract options */
@@ -57,7 +57,8 @@ const BabelPluginI18n = declare((babel, options: Options, dirname) => {
     strict = true,
     langs = [],
     output = './locales',
-    adapter = defaultAdapter,
+    format,
+    adapter = getAdapter(format),
     // TODO: auto translate messages
     // translator,
   } = options;

@@ -34,7 +34,7 @@ export default class I18nPlugin {
       );
 
       compilation.hooks.afterProcessAssets.tap(pluginName, () => {
-        emitAssets(cache);
+        emitAssets(cache, this.options);
       });
     });
   }

@@ -1,4 +1,10 @@
-import { defaultAdapter, Locale, Options } from '@helven/babel-plugin-i18n';
+import {
+  Adapter,
+  Format,
+  getAdapter,
+  Locale,
+  Options,
+} from '@helven/babel-plugin-i18n';
 import type { NormalModule } from 'webpack';
 
 const BABEL_LOADER = 'babel-loader';
@@ -29,7 +35,12 @@ export function isI18nBabelPlugin(plugin: any) {
   return plugin === BABEL_PLUGIN_I18N;
 }
 
-export function getAdapter(cache: Map<string, Locale>): Options['adapter'] {
+export function getPluginAdapter(
+  format: Format | undefined,
+  cache: Map<string, Locale>,
+): Adapter {
+  const adapter = getAdapter(format);
+
   return {
     read() {
       return {};
@@ -39,29 +50,31 @@ export function getAdapter(cache: Map<string, Locale>): Options['adapter'] {
       cache.set(file, { ...source, ...data });
     },
     merge(source, messages) {
-      return defaultAdapter.merge(source, messages);
+      return adapter.merge(source, messages);
     },
   };
 }
 
 export function addI18nBabelPlugin(
   babelPlugins: any[],
-  { cache, ...options }: Options & { cache: Map<string, any> },
+  { cache, format, ...options }: Options & { cache: Map<string, any> },
 ) {
   if (!babelPlugins.some(isI18nBabelPlugin)) {
     babelPlugins.push([
       BABEL_PLUGIN_I18N,
-      { ...options, adapter: getAdapter(cache) },
+      { ...options, format, adapter: getPluginAdapter(format, cache) },
     ]);
   }
 }
 
-export function emitAssets(cache: Map<string, Locale>) {
+export function emitAssets(cache: Map<string, Locale>, { format }: Options) {
+  const adapter = getAdapter(format);
+
   cache.forEach((data, file) => {
-    const source = defaultAdapter.read(file);
-    const locale = defaultAdapter.merge(source, data);
+    const source = adapter.read(file);
+    const locale = adapter.merge(source, Object.keys(data));
     if (locale) {
-      defaultAdapter.write(file, locale);
+      adapter.write(file, locale);
     }
   });
 }

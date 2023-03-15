@@ -102,19 +102,41 @@ export function createHelpers({ types: t }: BabelAPI) {
   };
 }
 
+export type Format = 'json' | 'js' | 'ts';
+
 export type Adapter = {
   read: (file: string) => Locale;
   write: (file: string, data: Locale) => void;
   merge: (source: Locale, messages: any[]) => Locale | undefined;
 };
 
-export function getAdapter(): Adapter {
+function readAsJSON(file: string) {
+  try {
+    const text = fs.readFileSync(file, 'utf8');
+    return JSON.parse(text.trim().replace(/export +default/, ''));
+  } catch (err) {
+    return undefined;
+  }
+}
+
+export function getAdapter(format: Format = 'json'): Adapter {
   return {
     read(file) {
+      if (format !== 'json') {
+        return readAsJSON(file) ?? {};
+      }
+
       return fs.readJSONSync(file, { throws: false }) ?? {};
     },
     write(file, data) {
-      fs.outputJsonSync(file, data, { spaces: 2 });
+      if (format !== 'json') {
+        fs.outputFileSync(
+          file,
+          'export default ' + JSON.stringify(data, null, 2),
+        );
+      } else {
+        fs.outputJsonSync(file, data, { spaces: 2 });
+      }
     },
     merge(source, messages) {
       let hasChanges = false;
