@@ -1,5 +1,11 @@
 # @helven/i18n-babel
 
+## 1.2.1
+
+### Patch Changes
+
+- 46ad3f0: release
+
 ## 1.2.0
 
 ### Minor Changes
