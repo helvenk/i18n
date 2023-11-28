@@ -7,7 +7,7 @@ export interface Locale extends Record<string, string> {}
 
 export interface Locales extends Record<string, Locale> {}
 
-export type Payload = Record<string, any>;
+export type Payload<T = any> = Record<string, T>;
 
 export type Translate<T extends Locale> = (
   message: Literal<T>,
