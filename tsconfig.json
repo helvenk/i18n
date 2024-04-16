@@ -12,5 +12,5 @@
       "i18n/*": ["packages/i18n/src/*", "*"]
     }
   },
-  "include": [".dumi/**/*", ".dumirc.ts", "packages/**/src/**/*"]
+  "include": [".dumirc.ts", "packages/**/src/**/*"]
 }
